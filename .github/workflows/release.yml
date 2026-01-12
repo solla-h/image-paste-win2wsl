@@ -53,29 +53,35 @@ jobs:
       run: |
         $Ahk2Exe = Resolve-Path "build_tools\Ahk2Exe\Ahk2Exe.exe"
         $BaseFile = "C:\Program Files\AutoHotkey\v2\AutoHotkey64.exe"
-        # 使用 Resolve-Path 获取 Input 绝对路径
         $InputFile = Resolve-Path "scripts\wsl_clipboard.ahk"
-        # 手动构建 Output 绝对路径 (因为文件尚未创建)
         $OutputFile = Join-Path (Get-Location) "scripts\wsl_clipboard.exe"
         
-        Write-Host "Compiling Details:"
+        # 严格校验所有依赖
+        if (-not (Test-Path $Ahk2Exe)) { throw "Compiler not found at $Ahk2Exe" }
+        if (-not (Test-Path $BaseFile)) { throw "Base AutoHotkey not found at $BaseFile" }
+        if (-not (Test-Path $InputFile)) { throw "Input script not found at $InputFile" }
+        
+        Write-Host "Starting Compilation..."
         Write-Host "  Compiler: $Ahk2Exe"
         Write-Host "  Input:    $InputFile"
         Write-Host "  Output:   $OutputFile"
         Write-Host "  Base:     $BaseFile"
         
-        # 执行编译
-        & $Ahk2Exe /in "$InputFile" /out "$OutputFile" /base "$BaseFile"
+        # 使用 Start-Process 以规避 PowerShell 参数解析问题
+        $args = @("/in", "`"$InputFile`"", "/out", "`"$OutputFile`"", "/base", "`"$BaseFile`"")
+        $proc = Start-Process -FilePath $Ahk2Exe -ArgumentList $args -PassThru -Wait
         
-        # 调试：列出 scripts 目录内容，确认文件到底生成在哪
-        Write-Host "Checking output directory..."
-        Get-ChildItem "scripts" | Select-Object Name, Length, LastWriteTime | Format-Table
+        if ($proc.ExitCode -ne 0) {
+            throw "Ahk2Exe exited with error code $($proc.ExitCode)"
+        }
         
+        # 二次确认
         if (Test-Path $OutputFile) {
-          Write-Host "Compilation verification SUCCESS."
+            Write-Host "Compilation verification SUCCESS."
+            Get-Item $OutputFile | Select-Object FullName, Length, LastWriteTime | Format-List
         } else {
-          Write-Error "Output file missing!"
-          throw "Compilation failed: Output file not found at $OutputFile"
+            Write-Error "Output file missing after compilation!"
+            throw "Compilation failed: Output file not found."
         }
       shell: pwsh
 
