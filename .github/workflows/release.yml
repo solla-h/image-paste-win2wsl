@@ -18,8 +18,23 @@ jobs:
 
     - name: Install AutoHotkey v2
       run: |
-        choco install autohotkey --version=2.0.18 -y
-        Start-Sleep -Seconds 5
+        # 直接从 GitHub 下载 AutoHotkey v2 安装包
+        $ahkVersion = "2.0.19"
+        $installerUrl = "https://github.com/AutoHotkey/AutoHotkey/releases/download/v$ahkVersion/AutoHotkey_$ahkVersion`_setup.exe"
+        $installerPath = "$env:TEMP\AutoHotkey_setup.exe"
+        
+        Write-Host "Downloading AutoHotkey v$ahkVersion..."
+        Invoke-WebRequest -Uri $installerUrl -OutFile $installerPath
+        
+        Write-Host "Installing AutoHotkey..."
+        Start-Process -FilePath $installerPath -ArgumentList "/silent" -Wait
+        
+        # 验证安装
+        if (Test-Path "C:\Program Files\AutoHotkey\v2\AutoHotkey64.exe") {
+          Write-Host "AutoHotkey v2 installed successfully."
+        } else {
+          throw "AutoHotkey installation failed!"
+        }
       shell: pwsh
 
     - name: Download Ahk2Exe
