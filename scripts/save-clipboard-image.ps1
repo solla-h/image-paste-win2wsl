@@ -20,9 +20,18 @@ Add-Type -AssemblyName System.Drawing
 if ([System.Windows.Forms.Clipboard]::ContainsImage()) {
     try {
         $image = [System.Windows.Forms.Clipboard]::GetImage()
+
+        # Plugin Hook: Apply SmartScale if available (Fallback to pass-through)
+        $pluginPath = Join-Path $PSScriptRoot "lib\SmartScale.ps1"
+        if (Test-Path $pluginPath) {
+            . $pluginPath
+            $image = Optimize-ImageObject -Image $image
+        }
+
         $image.Save($FilePath, [System.Drawing.Imaging.ImageFormat]::Png)
         $image.Dispose()
-    } catch {
+    }
+    catch {
         # Save failed, silently ignore
     }
 }
