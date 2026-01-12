@@ -125,7 +125,7 @@ InitializeHelperScripts() {
 }
 
 SetupTrayMenu() {
-    A_IconTip := "WSL CLI Clipboard Helper"
+    A_IconTip := "Image Paster: Win2WSL"
     try A_TrayMenu.Delete()
     A_TrayMenu.Add("打开图片缓存", ShowTempFolder)
     A_TrayMenu.Add()

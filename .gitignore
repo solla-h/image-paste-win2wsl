@@ -9,7 +9,7 @@
 temp/
 
 # 编译产物 (可从 .ahk 重新编译)
-scripts/*.exe
+# scripts/*.exe
 
 # Windows 系统文件
 Thumbs.db
