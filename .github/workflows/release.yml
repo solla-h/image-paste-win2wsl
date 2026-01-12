@@ -16,12 +16,35 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    - name: Install AutoHotkey v2
+      run: |
+        choco install autohotkey --version=2.0.18 -y
+        Start-Sleep -Seconds 5
+      shell: pwsh
+
+    - name: Download Ahk2Exe
+      run: |
+        New-Item -ItemType Directory -Force -Path build_tools
+        Invoke-WebRequest -Uri "https://github.com/AutoHotkey/Ahk2Exe/releases/download/Ahk2Exe1.1.37.02/Ahk2Exe1.1.37.02.zip" -OutFile "build_tools\Ahk2Exe.zip"
+        Expand-Archive -Path "build_tools\Ahk2Exe.zip" -DestinationPath "build_tools\Ahk2Exe"
+      shell: pwsh
+
     - name: Compile AutoHotkey Script
-      uses: nukdokplex/autohotkey-build@v1
-      with:
-        in: scripts/wsl_clipboard.ahk
-        out: scripts/wsl_clipboard.exe
-        base: AutoHotkey64.exe
+      run: |
+        $Ahk2Exe = "build_tools\Ahk2Exe\Ahk2Exe.exe"
+        $BaseFile = "C:\Program Files\AutoHotkey\v2\AutoHotkey64.exe"
+        $InputFile = "scripts\wsl_clipboard.ahk"
+        $OutputFile = "scripts\wsl_clipboard.exe"
+        
+        Write-Host "Compiling $InputFile..."
+        & $Ahk2Exe /in $InputFile /out $OutputFile /base $BaseFile
+        
+        if (Test-Path $OutputFile) {
+          Write-Host "Compilation successful: $OutputFile"
+        } else {
+          throw "Compilation failed!"
+        }
+      shell: pwsh
 
     - name: Prepare Release Artifacts
       run: |
@@ -29,10 +52,12 @@ jobs:
         Copy-Item scripts/wsl_clipboard.exe -Destination dist/
         Copy-Item scripts/*.ps1 -Destination dist/
         Copy-Item scripts/lib -Destination dist/ -Recurse
+      shell: pwsh
         
     - name: Create Zip Archive
       run: |
         Compress-Archive -Path dist/* -DestinationPath WSL-Image-Clipboard-Helper.zip
+      shell: pwsh
 
     - name: Create Release
       uses: softprops/action-gh-release@v1
