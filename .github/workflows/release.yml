@@ -105,6 +105,9 @@ jobs:
         # B. 复制依赖库 (包含所有 ps1 脚本)
         Copy-Item "lib" -Destination $ReleaseRoot -Recurse
         
+        # C. 复制图标目录 (README 中引用)
+        Copy-Item "icon" -Destination $ReleaseRoot -Recurse
+        
         # D. 复制文档
         Copy-Item "README.md" -Destination $ReleaseRoot
         
