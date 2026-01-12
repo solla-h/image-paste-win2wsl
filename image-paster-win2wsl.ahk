@@ -2,9 +2,10 @@
 #SingleInstance Force
 
 global gScriptDir := A_ScriptDir
-global gTempDir := GetFullPath(gScriptDir "\..\temp")
-global gPsScript := gScriptDir "\save-clipboard-image.ps1"
-global gExitScript := gScriptDir "\exit-all.ps1"
+; 扁平化后，temp 目录位于脚本同级
+global gTempDir := gScriptDir "\temp"
+global gPsScript := gScriptDir "\lib\save-clipboard-image.ps1"
+global gExitScript := gScriptDir "\lib\exit-all.ps1"
 global gCleanupDone := false
 global gLastNotifyAt := 0
 
@@ -12,6 +13,9 @@ global gLastNotifyAt := 0
 global gEngHKL := DllCall("user32.dll\LoadKeyboardLayoutW", "WStr", "00000409", "UInt", 0x1, "UPtr")
 
 SetupTrayMenu()
+if FileExist("icon\image-paste-icon_256.ico") {
+    TraySetIcon("icon\image-paste-icon_256.ico")
+}
 InitializeHelperScripts()
 OnExit(HandleExit)
 

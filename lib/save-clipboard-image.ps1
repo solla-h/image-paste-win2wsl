@@ -22,7 +22,8 @@ if ([System.Windows.Forms.Clipboard]::ContainsImage()) {
         $image = [System.Windows.Forms.Clipboard]::GetImage()
 
         # Plugin Hook: Apply SmartScale if available (Fallback to pass-through)
-        $pluginPath = Join-Path $PSScriptRoot "lib\SmartScale.ps1"
+        # ps1 脚本已移入 lib/，SmartScale.ps1 也在同级目录
+        $pluginPath = Join-Path $PSScriptRoot "SmartScale.ps1"
         if (Test-Path $pluginPath) {
             . $pluginPath
             $image = Optimize-ImageObject -Image $image
