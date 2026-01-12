@@ -1,5 +1,6 @@
 # AI/Agent 工作目录 (不应提交到 Git)
 .agent/
+.ai_memory/
 # # # # .ai_memory/
 .claude/
 .kiro/
@@ -9,7 +10,7 @@
 temp/
 
 # 编译产物 (可从 .ahk 重新编译)
-# scripts/*.exe
+scripts/*.exe
 
 # Windows 系统文件
 Thumbs.db
