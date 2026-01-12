@@ -1,0 +1,22 @@
+# AI/Agent 工作目录 (不应提交到 Git)
+.agent/
+.ai_memory/
+
+.claude/
+.kiro/
+.gemini/
+
+# 临时文件目录 (运行时生成的图片)
+temp/
+
+# 编译产物 (可从 .ahk 重新编译)
+*.exe
+temp/
+# Windows 系统文件
+Thumbs.db
+Desktop.ini
+
+# 编辑器/IDE 配置
+.vscode/
+*.swp
+*~

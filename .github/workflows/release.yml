@@ -1,0 +1,142 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Environment (Auto-Detect and Download)
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        $ErrorActionPreference = "Stop"
+        $headers = @{ Authorization = "Bearer $env:GH_TOKEN" }
+        
+        # 1. 获取并下载最新 AutoHotkey v2
+        Write-Host "Fetching latest AutoHotkey release..."
+        $ahkApi = Invoke-RestMethod "https://api.github.com/repos/AutoHotkey/AutoHotkey/releases/latest" -Headers $headers
+        $ahkAsset = $ahkApi.assets | Where-Object { $_.name -match "AutoHotkey_.*_setup\.exe" } | Select-Object -First 1
+        
+        if (!$ahkAsset) { throw "Could not find AutoHotkey setup executable!" }
+        
+        $ahkInstallerPath = "$env:TEMP\AutoHotkey_setup.exe"
+        Write-Host "Downloading AutoHotkey $($ahkApi.tag_name) from $($ahkAsset.browser_download_url)..."
+        Invoke-WebRequest -Uri $ahkAsset.browser_download_url -OutFile $ahkInstallerPath
+        
+        Write-Host "Installing AutoHotkey..."
+        Start-Process -FilePath $ahkInstallerPath -ArgumentList "/silent" -Wait
+        
+        # 2. 获取并下载最新 Ahk2Exe
+        Write-Host "Fetching latest Ahk2Exe release..."
+        $compilerApi = Invoke-RestMethod "https://api.github.com/repos/AutoHotkey/Ahk2Exe/releases/latest" -Headers $headers
+        $compilerAsset = $compilerApi.assets | Where-Object { $_.name -match "\.zip$" } | Select-Object -First 1
+        
+        if (!$compilerAsset) { throw "Could not find Ahk2Exe zip!" }
+        
+        New-Item -ItemType Directory -Force -Path build_tools
+        Write-Host "Downloading Ahk2Exe $($compilerApi.tag_name) from $($compilerAsset.browser_download_url)..."
+        Invoke-WebRequest -Uri $compilerAsset.browser_download_url -OutFile "build_tools\Ahk2Exe.zip"
+        Expand-Archive -Path "build_tools\Ahk2Exe.zip" -DestinationPath "build_tools\Ahk2Exe"
+        
+        Write-Host "Environment setup complete."
+      shell: pwsh
+
+    - name: Compile AutoHotkey Script
+      run: |
+        $Ahk2Exe = Resolve-Path "build_tools\Ahk2Exe\Ahk2Exe.exe"
+        $BaseFile = "C:\Program Files\AutoHotkey\v2\AutoHotkey64.exe"
+        $InputFile = Resolve-Path "image-paster-win2wsl.ahk"
+        
+        # 1. 设置正确的产物名称
+        $OutputName = "image-paster-win2wsl.exe"
+        $OutputDir = Join-Path (Get-Location) "dist_temp" 
+        New-Item -ItemType Directory -Force -Path $OutputDir
+        $OutputFile = Join-Path $OutputDir $OutputName
+        
+        # 2. 设置 Icon 路径
+        $IconFile = Resolve-Path "icon\image-paste-icon_256.ico"
+
+        # 校验依赖
+        if (-not (Test-Path $Ahk2Exe)) { throw "Compiler not found at $Ahk2Exe" }
+        if (-not (Test-Path $BaseFile)) { throw "Base AutoHotkey not found at $BaseFile" }
+        if (-not (Test-Path $InputFile)) { throw "Input script not found at $InputFile" }
+        if (-not (Test-Path $IconFile)) { throw "Icon not found at $IconFile" }
+        
+        Write-Host "Starting Compilation..."
+        Write-Host "  Compiler: $Ahk2Exe"
+        Write-Host "  Input:    $InputFile"
+        Write-Host "  Output:   $OutputFile"
+        Write-Host "  Icon:     $IconFile"
+        
+        # 编译调用
+        $args = @("/in", "`"$InputFile`"", "/out", "`"$OutputFile`"", "/icon", "`"$IconFile`"", "/base", "`"$BaseFile`"")
+        $proc = Start-Process -FilePath $Ahk2Exe -ArgumentList $args -PassThru -Wait
+        
+        if ($proc.ExitCode -ne 0) {
+            throw "Ahk2Exe exited with error code $($proc.ExitCode)"
+        }
+        
+        if (-not (Test-Path $OutputFile)) {
+            throw "Compilation failed: Output file not found."
+        }
+        Write-Host "Compilation verification SUCCESS."
+      shell: pwsh
+
+    - name: Prepare Release Artifacts (Flattened Structure)
+      run: |
+        # 创建最终打包目录结构
+        $ReleaseRoot = "dist\ImagePasteWin2WSL"
+        New-Item -ItemType Directory -Force -Path $ReleaseRoot
+        
+        # A. 复制主程序
+        Copy-Item "dist_temp\image-paster-win2wsl.exe" -Destination $ReleaseRoot
+        
+        # B. 复制依赖库 (包含所有 ps1 脚本)
+        Copy-Item "lib" -Destination $ReleaseRoot -Recurse
+        
+        # D. 复制文档
+        Copy-Item "README.md" -Destination $ReleaseRoot
+        
+        # E. 创建杀毒误报说明
+        $SecurityNotice = @'
+        [SECURITY NOTICE / 安全提示]
+        
+        This application is compiled using AutoHotkey. Some antivirus software (including Windows Defender) 
+        may flag un-signed AutoHotkey executables as "False Positives" (generic threats).
+        
+        本程序使用 AutoHotkey 编译。由于没有数字签名（需要昂贵的证书费用），部分杀毒软件（包括 Windows Defender）
+        可能会错误地将其标记为威胁。
+        
+        This is a known issue in the AutoHotkey community. The source code is completely open:
+        这是 AutoHotkey 社区的已知问题。所有源码完全公开可见：
+        https://github.com/solla-h/image-paste-win2wsl
+        '@
+        Set-Content -Path "$ReleaseRoot\SECURITY_NOTICE.txt" -Value $SecurityNotice
+        
+        Write-Host "Artifacts prepared at $ReleaseRoot"
+        Get-ChildItem $ReleaseRoot -Recurse | Select-Object FullName
+      shell: pwsh
+        
+    - name: Create Zip Archive
+      run: |
+        Compress-Archive -Path "dist\ImagePasteWin2WSL" -DestinationPath "ImagePaste-Win2WSL.zip"
+      shell: pwsh
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: ImagePaste-Win2WSL.zip
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

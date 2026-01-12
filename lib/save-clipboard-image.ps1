@@ -1,0 +1,38 @@
+param(
+    [string]$FilePath
+)
+
+# This script saves clipboard images to the specified file path.
+# Called asynchronously by AHK, no need to return anything.
+
+if (-not $FilePath) {
+    exit
+}
+
+$dir = Split-Path -Parent $FilePath
+if (-not (Test-Path $dir)) {
+    New-Item -ItemType Directory -Force -Path $dir | Out-Null
+}
+
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
+
+if ([System.Windows.Forms.Clipboard]::ContainsImage()) {
+    try {
+        $image = [System.Windows.Forms.Clipboard]::GetImage()
+
+        # Plugin Hook: Apply SmartScale if available (Fallback to pass-through)
+        # ps1 脚本已移入 lib/，SmartScale.ps1 也在同级目录
+        $pluginPath = Join-Path $PSScriptRoot "SmartScale.ps1"
+        if (Test-Path $pluginPath) {
+            . $pluginPath
+            $image = Optimize-ImageObject -Image $image
+        }
+
+        $image.Save($FilePath, [System.Drawing.Imaging.ImageFormat]::Png)
+        $image.Dispose()
+    }
+    catch {
+        # Save failed, silently ignore
+    }
+}
