@@ -1,0 +1,43 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Compile AutoHotkey Script
+      uses: nukdokplex/autohotkey-build@v1
+      with:
+        in: scripts/wsl_clipboard.ahk
+        out: scripts/wsl_clipboard.exe
+        base: AutoHotkey64.exe
+
+    - name: Prepare Release Artifacts
+      run: |
+        New-Item -ItemType Directory -Force -Path dist
+        Copy-Item scripts/wsl_clipboard.exe -Destination dist/
+        Copy-Item scripts/*.ps1 -Destination dist/
+        Copy-Item scripts/lib -Destination dist/ -Recurse
+        
+    - name: Create Zip Archive
+      run: |
+        Compress-Archive -Path dist/* -DestinationPath WSL-Image-Clipboard-Helper.zip
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: WSL-Image-Clipboard-Helper.zip
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
