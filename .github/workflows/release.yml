@@ -127,13 +127,13 @@ jobs:
         
     - name: Create Zip Archive
       run: |
-        Compress-Archive -Path "dist\ImagePasteWin2WSL" -DestinationPath "WSL-Image-Clipboard-Helper.zip"
+        Compress-Archive -Path "dist\ImagePasteWin2WSL" -DestinationPath "ImagePaste-Win2WSL.zip"
       shell: pwsh
 
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
-        files: WSL-Image-Clipboard-Helper.zip
+        files: ImagePaste-Win2WSL.zip
         generate_release_notes: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
