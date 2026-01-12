@@ -51,18 +51,31 @@ jobs:
 
     - name: Compile AutoHotkey Script
       run: |
-        $Ahk2Exe = "build_tools\Ahk2Exe\Ahk2Exe.exe"
+        $Ahk2Exe = Resolve-Path "build_tools\Ahk2Exe\Ahk2Exe.exe"
         $BaseFile = "C:\Program Files\AutoHotkey\v2\AutoHotkey64.exe"
-        $InputFile = "scripts\wsl_clipboard.ahk"
-        $OutputFile = "scripts\wsl_clipboard.exe"
+        # 使用 Resolve-Path 获取 Input 绝对路径
+        $InputFile = Resolve-Path "scripts\wsl_clipboard.ahk"
+        # 手动构建 Output 绝对路径 (因为文件尚未创建)
+        $OutputFile = Join-Path (Get-Location) "scripts\wsl_clipboard.exe"
         
-        Write-Host "Compiling $InputFile..."
-        & $Ahk2Exe /in $InputFile /out $OutputFile /base $BaseFile
+        Write-Host "Compiling Details:"
+        Write-Host "  Compiler: $Ahk2Exe"
+        Write-Host "  Input:    $InputFile"
+        Write-Host "  Output:   $OutputFile"
+        Write-Host "  Base:     $BaseFile"
+        
+        # 执行编译
+        & $Ahk2Exe /in "$InputFile" /out "$OutputFile" /base "$BaseFile"
+        
+        # 调试：列出 scripts 目录内容，确认文件到底生成在哪
+        Write-Host "Checking output directory..."
+        Get-ChildItem "scripts" | Select-Object Name, Length, LastWriteTime | Format-Table
         
         if (Test-Path $OutputFile) {
-          Write-Host "Compilation successful: $OutputFile"
+          Write-Host "Compilation verification SUCCESS."
         } else {
-          throw "Compilation failed!"
+          Write-Error "Output file missing!"
+          throw "Compilation failed: Output file not found at $OutputFile"
         }
       shell: pwsh
 
