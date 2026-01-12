@@ -16,32 +16,37 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Install AutoHotkey v2
+    - name: Set up Environment (Auto-Detect and Download)
       run: |
-        # 直接从 GitHub 下载 AutoHotkey v2 安装包
-        $ahkVersion = "2.0.19"
-        $installerUrl = "https://github.com/AutoHotkey/AutoHotkey/releases/download/v$ahkVersion/AutoHotkey_$ahkVersion`_setup.exe"
-        $installerPath = "$env:TEMP\AutoHotkey_setup.exe"
+        $ErrorActionPreference = "Stop"
         
-        Write-Host "Downloading AutoHotkey v$ahkVersion..."
-        Invoke-WebRequest -Uri $installerUrl -OutFile $installerPath
+        # 1. 获取并下载最新 AutoHotkey v2
+        Write-Host "Fetching latest AutoHotkey release..."
+        $ahkApi = Invoke-RestMethod "https://api.github.com/repos/AutoHotkey/AutoHotkey/releases/latest"
+        $ahkAsset = $ahkApi.assets | Where-Object { $_.name -match "AutoHotkey_.*_setup\.exe" } | Select-Object -First 1
+        
+        if (!$ahkAsset) { throw "Could not find AutoHotkey setup executable!" }
+        
+        $ahkInstallerPath = "$env:TEMP\AutoHotkey_setup.exe"
+        Write-Host "Downloading AutoHotkey $($ahkApi.tag_name) from $($ahkAsset.browser_download_url)..."
+        Invoke-WebRequest -Uri $ahkAsset.browser_download_url -OutFile $ahkInstallerPath
         
         Write-Host "Installing AutoHotkey..."
-        Start-Process -FilePath $installerPath -ArgumentList "/silent" -Wait
+        Start-Process -FilePath $ahkInstallerPath -ArgumentList "/silent" -Wait
         
-        # 验证安装
-        if (Test-Path "C:\Program Files\AutoHotkey\v2\AutoHotkey64.exe") {
-          Write-Host "AutoHotkey v2 installed successfully."
-        } else {
-          throw "AutoHotkey installation failed!"
-        }
-      shell: pwsh
-
-    - name: Download Ahk2Exe
-      run: |
+        # 2. 获取并下载最新 Ahk2Exe
+        Write-Host "Fetching latest Ahk2Exe release..."
+        $compilerApi = Invoke-RestMethod "https://api.github.com/repos/AutoHotkey/Ahk2Exe/releases/latest"
+        $compilerAsset = $compilerApi.assets | Where-Object { $_.name -match "\.zip$" } | Select-Object -First 1
+        
+        if (!$compilerAsset) { throw "Could not find Ahk2Exe zip!" }
+        
         New-Item -ItemType Directory -Force -Path build_tools
-        Invoke-WebRequest -Uri "https://github.com/AutoHotkey/Ahk2Exe/releases/download/Ahk2Exe1.1.37.02/Ahk2Exe1.1.37.02.zip" -OutFile "build_tools\Ahk2Exe.zip"
+        Write-Host "Downloading Ahk2Exe $($compilerApi.tag_name) from $($compilerAsset.browser_download_url)..."
+        Invoke-WebRequest -Uri $compilerAsset.browser_download_url -OutFile "build_tools\Ahk2Exe.zip"
         Expand-Archive -Path "build_tools\Ahk2Exe.zip" -DestinationPath "build_tools\Ahk2Exe"
+        
+        Write-Host "Environment setup complete."
       shell: pwsh
 
     - name: Compile AutoHotkey Script
