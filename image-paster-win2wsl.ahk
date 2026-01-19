@@ -37,7 +37,9 @@ OnExit(HandleExit)
     }
     
     ; 4) 生成文件名和路径（基于时间戳）
-    local fileName := FormatTime(, "yyyyMMdd_HHmmss") ".png"
+    local timestamp := FormatTime(, "yyyyMMdd_HHmmss")
+    local ms := FormatTime(, "fff")
+    local fileName := timestamp "_" ms ".png"
     local winPath := gTempDir "\" fileName
     local wslPath := ConvertPathToWsl(winPath)
     

@@ -66,11 +66,11 @@ User presses Alt+V
     │
     ├─→ 2. Switch to English (US) layout via PostMessage(0x50)
     │
-    ├─→ 3. Generate timestamped filename → 20260112_180000.png
+    ├─→ 3. Generate timestamped filename → 20260112_180000_123.png
     │
-    ├─→ 4. Build Windows path → C:\...\temp\20260112_180000.png
+    ├─→ 4. Build Windows path → C:\...\temp\20260112_180000_123.png
     │
-    ├─→ 5. Convert to WSL path → /mnt/c/.../temp/20260112_180000.png
+    ├─→ 5. Convert to WSL path → /mnt/c/.../temp/20260112_180000_123.png
     │
     ├─→ 6. Paste WSL path immediately via SendText() [~100ms]
     │

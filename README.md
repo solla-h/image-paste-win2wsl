@@ -119,8 +119,8 @@ Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
 ├────────────────────────────────────────────────────────────────┤
 │  1. Save current keyboard layout                               │
 │  2. Switch to English (US) layout                              │
-│  3. Generate timestamped filename → 20260112_172400.png        │
-│  4. Convert to WSL path → /mnt/c/.../temp/20260112_172400.png  │
+│  3. Generate timestamped filename → 20260112_172400_123.png    │
+│  4. Convert to WSL path → /mnt/c/.../temp/20260112_172400_123.png  │
 │  5. Paste path immediately (instant feedback)                  │
 │  6. Async: PowerShell saves image + SmartScale optimization    │
 │  7. Restore original keyboard layout                           │
