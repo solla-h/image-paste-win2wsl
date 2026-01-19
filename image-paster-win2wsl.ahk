@@ -36,9 +36,9 @@ OnExit(HandleExit)
         Sleep 100  ; 等待切换完成
     }
     
-    ; 4) 生成文件名和路径（基于时间戳）
+    ; 4) 生成文件名和路径（基于时间戳 + 毫秒避免冲突）
     local timestamp := FormatTime(, "yyyyMMdd_HHmmss")
-    local ms := FormatTime(, "fff")
+    local ms := A_MSec  ; 使用内置变量获取毫秒 (000-999)
     local fileName := timestamp "_" ms ".png"
     local winPath := gTempDir "\" fileName
     local wslPath := ConvertPathToWsl(winPath)
